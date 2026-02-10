@@ -1,9 +1,27 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import mlflow
+import mlflow.pytorch
 
 from src.data.preprocess import get_data_loaders
 from src.models.model import SimpleCNN
+
+
+def evaluate(model, loader, device):
+    model.eval()
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for images, labels in loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    return correct / total
 
 
 def train():
@@ -18,32 +36,58 @@ def train():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    epochs = 2  # keep small for now
+    epochs = 2
 
-    for epoch in range(epochs):
+    # Set MLflow experiment
+    mlflow.set_experiment("Cats_vs_Dogs_Experiment")
 
-        model.train()
-        running_loss = 0.0
+    with mlflow.start_run():
 
-        for images, labels in train_loader:
+        # Log hyperparameters
+        mlflow.log_param("learning_rate", 0.001)
+        mlflow.log_param("epochs", epochs)
+        mlflow.log_param("batch_size", 32)
 
-            images, labels = images.to(device), labels.to(device)
+        for epoch in range(epochs):
 
-            optimizer.zero_grad()
+            model.train()
+            running_loss = 0.0
 
-            outputs = model(images)
-            loss = criterion(outputs, labels)
+            for images, labels in train_loader:
 
-            loss.backward()
-            optimizer.step()
+                images, labels = images.to(device), labels.to(device)
 
-            running_loss += loss.item()
+                optimizer.zero_grad()
 
-        print(f"Epoch [{epoch+1}/{epochs}], Loss: {running_loss:.4f}")
+                outputs = model(images)
+                loss = criterion(outputs, labels)
 
-    # Save model
-    torch.save(model.state_dict(), "model.pt")
-    print("Model saved as model.pt")
+                loss.backward()
+                optimizer.step()
+
+                running_loss += loss.item()
+
+            avg_loss = running_loss / len(train_loader)
+
+            # Log training loss
+            mlflow.log_metric("train_loss", avg_loss, step=epoch)
+
+            # Evaluate on validation set
+            val_accuracy = evaluate(model, val_loader, device)
+
+            mlflow.log_metric("val_accuracy", val_accuracy, step=epoch)
+
+            print(f"Epoch [{epoch+1}/{epochs}] "
+                  f"Loss: {avg_loss:.4f} "
+                  f"Val Accuracy: {val_accuracy:.4f}")
+
+        # Save model
+        torch.save(model.state_dict(), "model.pt")
+
+        # Log model artifact
+        mlflow.log_artifact("model.pt")
+
+        print("Model saved and logged to MLflow")
 
 
 if __name__ == "__main__":
