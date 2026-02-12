@@ -1,0 +1,20 @@
+# Ignore dataset
+data/
+
+# Ignore DVC cache
+.dvc/
+.dvc/cache/
+
+# Ignore MLflow runs
+mlruns/
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore notebooks (if any)
+*.ipynb
