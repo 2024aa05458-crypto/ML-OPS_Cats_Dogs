@@ -6,9 +6,8 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install CPU-only torch from official index
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt \
-       --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir -r requirements.txt
+
 
 COPY . .
 
