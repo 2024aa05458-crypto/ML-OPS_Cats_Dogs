@@ -1,21 +1,19 @@
-from src.inference.predict import predict_image
+import tempfile
 import os
+from PIL import Image
+from src.inference.predict import predict_image
 
 
 def test_prediction_output():
 
-    # Use any small image from dataset
-    sample_image = None
+    with tempfile.TemporaryDirectory() as tmpdir:
 
-    for root, dirs, files in os.walk("data/raw"):
-        for file in files:
-            if file.endswith(".jpg"):
-                sample_image = os.path.join(root, file)
-                break
-        if sample_image:
-            break
+        image_path = os.path.join(tmpdir, "test.jpg")
 
-    result = predict_image(sample_image)
+        img = Image.new("RGB", (224, 224))
+        img.save(image_path)
 
-    assert "predicted_class" in result
-    assert "probabilities" in result
+        result = predict_image(image_path)
+
+        assert "predicted_class" in result
+        assert "probabilities" in result
