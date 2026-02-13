@@ -183,3 +183,52 @@ The trained model file (model.pt) is generated after training and is not committ
 The CI pipeline is designed to run independently of the dataset and trained weights.
 
 The Docker image excludes the dataset using .dockerignore.
+
+
+
+Docker Image (Artifact Publishing)
+
+The Docker image is automatically built and published via the CI pipeline.
+
+Image is available on Docker Hub:
+
+https://hub.docker.com/r/<your-docker-username>/cats-dogs-mlops
+
+
+You can pull and run the image using:
+
+docker pull <your-docker-username>/cats-dogs-mlops:latest
+docker run -p 8000:8000 <your-docker-username>/cats-dogs-mlops:latest
+
+
+Then open:
+
+http://localhost:8000/docs
+
+
+to test the API.
+
+ CI/CD Pipeline
+
+The GitHub Actions pipeline performs:
+
+Install dependencies
+
+Run unit tests using pytest
+
+Build Docker image
+
+Push Docker image to Docker Hub
+
+Pipeline status can be seen in the Actions tab.
+
+Deployment (Docker Compose)
+
+To deploy the service using Docker Compose:
+
+docker compose up
+
+
+The API will be available at:
+
+http://localhost:8000/docs
