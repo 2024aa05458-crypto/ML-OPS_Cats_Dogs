@@ -42,3 +42,21 @@ jobs:
     - name: Push Docker image
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/cats-dogs-mlops:latest
+
+    # ---------------------------
+    # Smoke Test Section
+    # ---------------------------
+
+    - name: Run container for smoke test
+      run: |
+        docker run -d -p 8000:8000 --name test-container ${{ secrets.DOCKER_USERNAME }}/cats-dogs-mlops:latest
+        sleep 20
+
+    - name: Smoke test - health endpoint
+      run: |
+        curl -f http://localhost:8000/health
+
+    - name: Stop test container
+      run: |
+        docker stop test-container
+        docker rm test-container
