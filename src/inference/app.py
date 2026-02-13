@@ -3,6 +3,8 @@ import shutil
 import os
 import time
 import logging
+import csv
+from datetime import datetime
 
 from src.inference.predict import predict_image
 
@@ -87,8 +89,75 @@ async def predict(file: UploadFile = File(...)):
 
     os.remove(temp_path)
 
+    prediction_id = str(int(time.time() * 1000))
+
+    # Log prediction
+    with open("predictions_log.csv", "a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            prediction_id,
+            datetime.now().isoformat(),
+            result["predicted_class"],
+            ""  # true label placeholder
+        ])
+
     logger.info(
-        f"Prediction made | Predicted class: {result['predicted_class']}"
+        f"Prediction logged | ID: {prediction_id} | Class: {result['predicted_class']}"
     )
 
-    return result
+    return {
+        "prediction_id": prediction_id,
+        "predicted_class": result["predicted_class"]
+    }
+@app.post("/submit-label")
+def submit_label(prediction_id: str, true_label: str):
+
+    rows = []
+    updated = False
+
+    with open("predictions_log.csv", "r") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    for row in rows:
+        if row[0] == prediction_id:
+            row[3] = true_label
+            updated = True
+
+    if not updated:
+        return {"message": "Prediction ID not found"}
+
+    with open("predictions_log.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(rows)
+
+    return {"message": "True label updated successfully"}
+@app.get("/performance")
+def performance():
+
+    total = 0
+    correct = 0
+
+    try:
+        with open("predictions_log.csv", "r") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                prediction = row[2]
+                true_label = row[3]
+
+                if true_label:
+                    total += 1
+                    if prediction == true_label:
+                        correct += 1
+
+        accuracy = correct / total if total > 0 else 0
+
+        return {
+            "evaluated_samples": total,
+            "correct_predictions": correct,
+            "accuracy": round(accuracy, 4)
+        }
+
+    except FileNotFoundError:
+        return {"message": "No predictions logged yet"}
+
